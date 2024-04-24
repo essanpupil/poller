@@ -1,2 +1,2 @@
 # poller
-Django hello world project Polling app
+Simple polling app
