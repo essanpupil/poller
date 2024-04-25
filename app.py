@@ -1,7 +1,7 @@
 import logging
 import os
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -44,6 +44,15 @@ def healthcheck():
 def index():
     result = db.session.execute(db.select(Question).order_by(Question.question)).scalars()
     return render_template('index.html', result=result)
+
+
+@app.route('/api/questions')
+def questions():
+    data = []
+    result = db.session.execute(db.select(Question).order_by(Question.question)).scalars()
+    for q in result.all():
+        data.append({'id': q.id, 'question': q.question, 'answer': q.answer})
+    return jsonify(data)
 
 
 @app.route('/create-question', methods=['POST'])
