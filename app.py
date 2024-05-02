@@ -8,18 +8,20 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://{uname}:{passwd}@{host}/{dbname}".format(
-    uname=os.environ.get("DB_USER"),
-    passwd=os.environ.get("DB_PASSWORD"),
-    host=os.environ.get("DB_HOST"),
-    dbname=os.environ.get("DB_NAME")
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    "mysql+pymysql://{uname}:{passwd}@{host}/{dbname}".format(
+        uname=os.environ.get("DB_USER"),
+        passwd=os.environ.get("DB_PASSWORD"),
+        host=os.environ.get("DB_HOST"),
+        dbname=os.environ.get("DB_NAME"),
+    )
 )
 POLL_URL = os.environ.get("POLL_URL")
 patch(sqlalchemy=True)
-ddtrace.config.flask['distributed_tracing_enabled'] = True
-ddtrace.config.flask['service_name'] = 'polls'
-ddtrace.config.flask['collect_view_args'] = True
-ddtrace.config.flask['trace_signals'] = True
+ddtrace.config.flask["distributed_tracing_enabled"] = True
+ddtrace.config.flask["service_name"] = "polls"
+ddtrace.config.flask["collect_view_args"] = True
+ddtrace.config.flask["trace_signals"] = True
 
 
 class Base(DeclarativeBase):
@@ -36,42 +38,56 @@ class Question(db.Model):
     answer: Mapped[str]
 
 
-if __name__ != '__main__':
-    gunicorn_logger = logging.getLogger('gunicorn.error')
+if __name__ != "__main__":
+    gunicorn_logger = logging.getLogger("gunicorn.error")
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)
 
 
-@app.route('/healthcheck')
+@app.route("/healthcheck")
 def healthcheck():
     db.session.execute(db.select(Question).order_by(Question.question)).scalars()
     return "OK", 200
 
 
-@app.route('/')
+@app.route("/")
 def index():
-    result = db.session.execute(db.select(Question).order_by(Question.question)).scalars()
-    return render_template('index.html', result=result)
+    result = db.session.execute(
+        db.select(Question).order_by(Question.question)
+    ).scalars()
+    return render_template("index.html", result=result)
 
 
-@app.route('/api/questions')
+@app.route("/api/questions")
 def questions():
     data = []
-    result = db.session.execute(db.select(Question).order_by(Question.question)).scalars()
+    result = db.session.execute(
+        db.select(Question).order_by(Question.question)
+    ).scalars()
     for q in result.all():
-        data.append({'id': q.id, 'question': q.question, 'answer': q.answer})
+        data.append({"id": q.id, "question": q.question, "answer": q.answer})
     return jsonify(data)
 
 
-@app.route('/create-question', methods=['POST'])
+@app.route("/create-question", methods=["POST"])
 def create_question():
-    question = request.form.get('question')
-    answer = request.form.get('answer')
+    question = request.form.get("question")
+    answer = request.form.get("answer")
     que = Question(question=question, answer=answer)
     db.session.add(que)
     db.session.commit()
     return "OK", 200
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+@app.route("/bookapi/books")
+def get_books():
+    import requests
+
+    response = requests.get(
+        "http://poc-bookapi-1433128348.ap-southeast-1.elb.amazonaws.com/books"
+    )
+    return response.json()
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080, debug=True)
